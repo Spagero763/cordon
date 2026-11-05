@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { clock, dayLabel, initials, useNow, relative } from "@/lib/format";
 
 import { Mono } from "./marks";
+import { ease, spring } from "./motion";
 
 export interface TimelineEntry {
   id: string;
@@ -53,6 +54,8 @@ const ACTOR_LABEL: Record<TimelineEntry["actorKind"], string> = {
   webhook: "webhook",
 };
 
+const GRID = "grid grid-cols-[3.25rem_1.5rem_minmax(0,1fr)] gap-x-3 py-2.5 pe-2 ps-1";
+
 function toneFor(entry: TimelineEntry): string {
   switch (entry.kind) {
     case "declared":
@@ -73,7 +76,19 @@ function toneFor(entry: TimelineEntry): string {
   }
 }
 
-function Row({ entry, now, first }: { entry: TimelineEntry; now: number; first: boolean }) {
+type Entrance = "loaded" | "arrived" | "mine";
+
+function Row({
+  entry,
+  now,
+  entrance,
+  delay,
+}: {
+  entry: TimelineEntry;
+  now: number;
+  entrance: Entrance;
+  delay: number;
+}) {
   const ref = useRef<HTMLLIElement>(null);
   const picked = useAgentSelectable({
     kind: "timeline-entry",
@@ -85,17 +100,23 @@ function Row({ entry, now, first }: { entry: TimelineEntry; now: number; first: 
   });
   const isUpdate = entry.kind === "update";
   const who = entry.actorKind === "person" ? entry.actorEmail : ACTOR_LABEL[entry.actorKind];
+  const arrived = entrance === "arrived";
+  // What you typed yourself is already where you expect it; only other
+  // people's and the agent's entries announce themselves.
+  const still = entrance === "mine";
 
   return (
     <motion.li
       ref={ref}
       layout="position"
-      initial={first ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      initial={still ? false : arrived ? { opacity: 0, y: 22, scale: 0.98 } : { opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+      transition={arrived ? spring : { duration: 0.35, ease, delay }}
       data-picked={picked ? "true" : undefined}
       className={cn(
-        "group relative grid grid-cols-[3.25rem_1.5rem_minmax(0,1fr)] gap-x-3 py-2.5 pe-2 ps-1 transition-colors",
+        "group relative transition-colors",
+        GRID,
+        arrived && "cordon-flash",
         picked && "rounded-md bg-[hsl(var(--signal-amber)/0.08)] ring-1 ring-[hsl(var(--signal-amber)/0.5)]",
       )}
     >
@@ -107,15 +128,21 @@ function Row({ entry, now, first }: { entry: TimelineEntry; now: number; first: 
         {clock(entry.createdAt)}
       </time>
       <span className="relative flex justify-center">
-        <span className="cordon-rail absolute inset-y-[-0.625rem] left-1/2 w-px -translate-x-1/2 bg-border group-first:top-2 group-last:bottom-2" />
         <span
+          aria-hidden="true"
+          className="absolute inset-y-[-0.625rem] left-1/2 w-px -translate-x-1/2 bg-border group-first:top-2"
+        />
+        <motion.span
+          initial={still ? false : { scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ ...spring, delay: arrived ? 0.05 : delay + 0.05 }}
           className={cn(
-            "relative z-10 mt-[1px] flex size-5 items-center justify-center rounded-full border bg-background",
+            "relative mt-[1px] flex size-5 items-center justify-center rounded-full border bg-background",
             toneFor(entry),
           )}
         >
           {ICONS[entry.kind] ?? ICONS.note}
-        </span>
+        </motion.span>
       </span>
       <div className="min-w-0">
         <p
@@ -148,18 +175,75 @@ function Row({ entry, now, first }: { entry: TimelineEntry; now: number; first: 
   );
 }
 
-export function Timeline({ entries, className }: { entries: TimelineEntry[]; className?: string }) {
+/** What the agent is doing right now, shown where its result will land. */
+function AgentTail({ phrase }: { phrase: string }) {
+  return (
+    <motion.li
+      layout="position"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.3, ease }}
+      aria-live="polite"
+      className={cn("relative", GRID)}
+    >
+      <span className="pt-[3px] text-end font-mono text-[11px] text-[hsl(var(--signal-amber))]">now</span>
+      <span className="relative flex justify-center">
+        <span aria-hidden="true" className="absolute bottom-1/2 left-1/2 top-[-0.625rem] w-px -translate-x-1/2 bg-border" />
+        <span className="relative mt-[1px] flex size-5 items-center justify-center rounded-full border border-[hsl(var(--signal-amber)/0.6)] bg-background">
+          <span className="size-1.5 animate-pulse rounded-full bg-[hsl(var(--signal-amber))]" />
+        </span>
+      </span>
+      <div className="min-w-0">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.p
+            key={phrase}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25, ease }}
+            className="cordon-shimmer w-fit text-[13.5px] leading-6"
+          >
+            Agent is {phrase}
+          </motion.p>
+        </AnimatePresence>
+        <span className="mt-0.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">agent</span>
+      </div>
+    </motion.li>
+  );
+}
+
+export function Timeline({
+  entries,
+  me,
+  agentPhrase,
+  className,
+}: {
+  entries: TimelineEntry[];
+  me?: string | null;
+  agentPhrase?: string | null;
+  className?: string;
+}) {
   const now = useNow();
-  const firstRender = useRef(true);
   const initialIds = useRef(new Set(entries.map((e) => e.id)));
-  if (firstRender.current) firstRender.current = false;
 
   return (
     <ol className={cn("relative m-0 list-none p-0", className)}>
-      <AnimatePresence initial={false}>
-        {entries.map((entry) => (
-          <Row key={entry.id} entry={entry} now={now} first={initialIds.current.has(entry.id)} />
-        ))}
+      <AnimatePresence initial>
+        {entries.map((entry, index) => {
+          const loaded = initialIds.current.has(entry.id);
+          const mine = entry.actorKind === "person" && Boolean(me) && entry.actorEmail === me;
+          return (
+            <Row
+              key={entry.id}
+              entry={entry}
+              now={now}
+              entrance={loaded ? "loaded" : mine ? "mine" : "arrived"}
+              delay={Math.min(index, 10) * 0.03}
+            />
+          );
+        })}
+        {agentPhrase ? <AgentTail key="agent-tail" phrase={agentPhrase} /> : null}
       </AnimatePresence>
     </ol>
   );

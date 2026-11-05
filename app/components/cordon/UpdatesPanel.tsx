@@ -1,6 +1,7 @@
 import { actionErrorMessage, useActionMutation } from "@agent-native/core/client/hooks";
 import { IconPencil, IconSpeakerphone } from "@tabler/icons-react";
-import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -25,6 +26,7 @@ import {
 } from "../../../shared/incident";
 import { AgentButton } from "./AgentButton";
 import { StatusPill } from "./marks";
+import { ease, spring } from "./motion";
 
 export interface StatusUpdate {
   id: string;
@@ -38,21 +40,35 @@ export interface StatusUpdate {
   updatedAt: string;
 }
 
-function Draft({ update, incidentId }: { update: StatusUpdate; incidentId: string }) {
+/**
+ * One card for the whole life of an update. A draft and its published form
+ * share a key, so approving it sets the card in place instead of swapping it.
+ */
+function UpdateCard({ update, incidentId }: { update: StatusUpdate; incidentId: string }) {
+  const draft = !update.published;
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(update.body);
   const [state, setState] = useState<IncidentStatus>(update.state);
   const [confirming, setConfirming] = useState(false);
+
+  const wasDraft = useRef(draft);
+  const [justSet, setJustSet] = useState(false);
+  useEffect(() => {
+    if (wasDraft.current && !draft) {
+      setJustSet(true);
+      const timer = setTimeout(() => setJustSet(false), 1500);
+      wasDraft.current = draft;
+      return () => clearTimeout(timer);
+    }
+    wasDraft.current = draft;
+  }, [draft]);
 
   const save = useActionMutation("draft-update", {
     onSuccess: () => setEditing(false),
     onError: (error) => toast.error(actionErrorMessage(error) ?? "Could not save the draft."),
   });
   const publish = useActionMutation("publish-update", {
-    onSuccess: () => {
-      setConfirming(false);
-      toast.success("Published to the status page.");
-    },
+    onSuccess: () => setConfirming(false),
     onError: (error) => {
       setConfirming(false);
       toast.error(actionErrorMessage(error) ?? "Could not publish.");
@@ -60,18 +76,48 @@ function Draft({ update, incidentId }: { update: StatusUpdate; incidentId: strin
   });
 
   return (
-    <article className="rounded-lg border border-dashed border-[hsl(var(--signal-amber)/0.6)] bg-[hsl(var(--signal-amber)/0.04)] p-3">
+    <motion.li
+      layout="position"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={spring}
+      className={cn(
+        "rounded-lg border p-3 transition-[border-color,background-color] duration-700",
+        draft
+          ? "border-dashed border-[hsl(var(--signal-amber)/0.6)] bg-[hsl(var(--signal-amber)/0.04)]"
+          : "border-border bg-card",
+        justSet && "cordon-set",
+      )}
+    >
       <header className="mb-2 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[hsl(var(--signal-amber))]">
-          Draft · not visible to customers
+        <span className="relative block h-4 min-w-0 flex-1 overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={draft ? "draft" : "published"}
+              initial={{ y: 14, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -14, opacity: 0 }}
+              transition={{ duration: 0.35, ease }}
+              className={cn(
+                "absolute inset-0 truncate font-mono text-[10px] uppercase leading-4 tracking-[0.1em]",
+                draft ? "text-[hsl(var(--signal-amber))]" : "text-[hsl(var(--signal-moss))]",
+              )}
+            >
+              {draft
+                ? "Draft · not visible to customers"
+                : `Published ${dayLabel(update.publishedAt)} ${clock(update.publishedAt)}`}
+            </motion.span>
+          </AnimatePresence>
         </span>
-        {!editing ? (
+        {draft && !editing ? (
           <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit draft" onClick={() => setEditing(true)}>
             <IconPencil className="size-4" />
           </Button>
         ) : null}
       </header>
-      {editing ? (
+
+      {draft && editing ? (
         <div className="space-y-2">
           <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Update state">
             {INCIDENT_STATUSES.map((option) => (
@@ -104,21 +150,35 @@ function Draft({ update, incidentId }: { update: StatusUpdate; incidentId: strin
         <>
           <div className="mb-2"><StatusPill status={update.state} /></div>
           <p className="whitespace-pre-wrap text-[13.5px] leading-6">{update.body}</p>
-          <footer className="mt-3 flex items-center justify-between gap-2">
-            <AgentButton
-              variant="ghost"
-              message="Tighten this draft customer update. Keep it to three sentences and the facts on the timeline."
-              context={{ incidentId, updateId: update.id }}
-            >
-              Ask the agent to tighten
-            </AgentButton>
-            <Button type="button" size="sm" className="cordon-publish" onClick={() => setConfirming(true)} disabled={publish.isPending}>
-              <IconSpeakerphone className="size-4" />
-              Publish
-            </Button>
-          </footer>
+          <AnimatePresence initial={false}>
+            {draft ? (
+              <motion.footer
+                key="actions"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center justify-between gap-2 pt-3">
+                  <AgentButton
+                    variant="ghost"
+                    message="Tighten this draft customer update. Keep it to three sentences and the facts on the timeline."
+                    context={{ incidentId, updateId: update.id }}
+                  >
+                    Ask the agent to tighten
+                  </AgentButton>
+                  <Button type="button" size="sm" className="cordon-publish" onClick={() => setConfirming(true)} disabled={publish.isPending}>
+                    <IconSpeakerphone className="size-4" />
+                    Publish
+                  </Button>
+                </div>
+              </motion.footer>
+            ) : null}
+          </AnimatePresence>
         </>
       )}
+
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -140,7 +200,7 @@ function Draft({ update, incidentId }: { update: StatusUpdate; incidentId: strin
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </article>
+    </motion.li>
   );
 }
 
@@ -148,13 +208,19 @@ export function UpdatesPanel({
   incidentId,
   updates,
   status,
+  agentDrafting = false,
 }: {
   incidentId: string;
   updates: StatusUpdate[];
   status: IncidentStatus;
+  agentDrafting?: boolean;
 }) {
-  const drafts = updates.filter((u) => !u.published);
-  const published = updates.filter((u) => u.published).sort((a, b) => ((a.publishedAt ?? "") < (b.publishedAt ?? "") ? 1 : -1));
+  const ordered = [...updates].sort((a, b) => {
+    if (a.published !== b.published) return a.published ? 1 : -1;
+    const left = a.publishedAt ?? a.createdAt;
+    const right = b.publishedAt ?? b.createdAt;
+    return left < right ? 1 : -1;
+  });
   const [writing, setWriting] = useState(false);
   const [body, setBody] = useState("");
   const create = useActionMutation("draft-update", {
@@ -183,41 +249,59 @@ export function UpdatesPanel({
         </Button>
       </div>
 
-      {writing ? (
-        <form
-          className="space-y-2 rounded-lg border border-border bg-card p-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (body.trim()) create.mutate({ incidentId, body: body.trim() });
-          }}
-        >
-          <Textarea autoFocus value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={1200} placeholder="What is affected, what you are doing, when they will hear from you next." className="text-[13.5px] leading-6" />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setWriting(false)}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={!body.trim() || create.isPending}>Save draft</Button>
-          </div>
-        </form>
-      ) : null}
-
-      {drafts.map((draft) => (
-        <Draft key={draft.id} update={draft} incidentId={incidentId} />
-      ))}
-
-      {published.length ? (
-        <ol className="space-y-3">
-          {published.map((update) => (
-            <li key={update.id} className="rounded-lg border border-border bg-card p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <StatusPill status={update.state} />
-                <time dateTime={update.publishedAt ?? undefined} className="font-mono text-[11px] text-muted-foreground">
-                  {dayLabel(update.publishedAt)} {clock(update.publishedAt)}
-                </time>
+      <AnimatePresence initial={false}>
+        {writing ? (
+          <motion.form
+            key="compose"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease }}
+            className="overflow-hidden"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (body.trim()) create.mutate({ incidentId, body: body.trim() });
+            }}
+          >
+            <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+              <Textarea autoFocus value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={1200} placeholder="What is affected, what you are doing, when they will hear from you next." className="text-[13.5px] leading-6" />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setWriting(false)}>Cancel</Button>
+                <Button type="submit" size="sm" disabled={!body.trim() || create.isPending}>Save draft</Button>
               </div>
-              <p className="whitespace-pre-wrap text-[13.5px] leading-6">{update.body}</p>
-            </li>
+            </div>
+          </motion.form>
+        ) : null}
+      </AnimatePresence>
+
+      <ul className="m-0 list-none space-y-3 p-0">
+        <AnimatePresence initial={false}>
+          {agentDrafting ? (
+            <motion.li
+              key="agent-ghost"
+              layout="position"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={spring}
+              aria-live="polite"
+              className="rounded-lg border border-dashed border-[hsl(var(--signal-amber)/0.5)] p-3"
+            >
+              <p className="cordon-shimmer mb-3 w-fit font-mono text-[10px] uppercase tracking-[0.1em]">Agent is drafting an update</p>
+              <div className="space-y-2">
+                <div className="h-3 w-11/12 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-2/5 animate-pulse rounded bg-muted" />
+              </div>
+            </motion.li>
+          ) : null}
+          {ordered.map((update) => (
+            <UpdateCard key={update.id} update={update} incidentId={incidentId} />
           ))}
-        </ol>
-      ) : drafts.length === 0 && !writing ? (
+        </AnimatePresence>
+      </ul>
+
+      {ordered.length === 0 && !writing && !agentDrafting ? (
         <p className="py-6 text-center text-sm text-muted-foreground">Nothing published yet. Customers only see what you approve.</p>
       ) : null}
     </div>

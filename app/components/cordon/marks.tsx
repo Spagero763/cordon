@@ -68,7 +68,7 @@ export function StatusPill({
       )}
     >
       <span className="relative flex size-2">
-        {live && status !== "resolved" ? (
+        {live && status === "investigating" ? (
           <span
             className={cn(
               "absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:hidden",
@@ -88,7 +88,7 @@ export function HealthDot({ ok, className }: { ok: boolean | null; className?: s
     <span
       aria-label={ok === null ? "Not checked yet" : ok ? "Healthy" : "Failing"}
       className={cn(
-        "inline-block size-2.5 rounded-full",
+        "relative inline-block size-2.5 rounded-full transition-colors duration-500",
         ok === null
           ? "bg-muted-foreground/40"
           : ok
@@ -96,7 +96,11 @@ export function HealthDot({ ok, className }: { ok: boolean | null; className?: s
             : "bg-[hsl(var(--signal-ember))] shadow-[0_0_0_3px_hsl(var(--signal-ember)/0.2)]",
         className,
       )}
-    />
+    >
+      {ok === false ? (
+        <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--signal-ember))] opacity-70 motion-reduce:hidden" />
+      ) : null}
+    </span>
   );
 }
 

@@ -26,10 +26,14 @@ asleep two minutes ago.
   timeline with a narrow control column; the agent sidebar stays on the right.
 - Shape language: hairline borders, 6px corners, no shadows except menus and
   dialogs. Dense rows, generous line height.
-- Motion: a state change moves. The cordon stripe slides in when an incident
-  opens and out at all clear. New timeline rows enter from the baseline. The
-  severity badge pulses once on change and then rests. Nothing animates on
-  load. Reduced motion disables everything but opacity.
+- Motion: the room is alive while something is open and calm when it is not.
+  The cordon stripe draws across, keeps marching, and retracts at all clear. A
+  radar ring beats fast in ember during an incident and slow in moss when
+  clear. Open timers roll their digits every second. Pages arrive in a short
+  stagger; new timeline rows spring in and glow once; tabs slide a shared
+  pill. A wash of colour crosses the page when state changes: ember on open,
+  moss on resolve. Uptime bars grow from the baseline. Reduced motion turns
+  all of it off except opacity.
 - Anti-references: dashboard stat strips, gradient hero panels, glass cards,
   traffic-light grids, robot or sparkle icons for agent work, and anything that
   reads as a status page vendor's marketing site.

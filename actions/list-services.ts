@@ -6,13 +6,22 @@ import { z } from "zod";
 
 import { OPEN_STATUSES } from "../shared/incident.js";
 import { getDb, schema } from "../server/db/index.js";
+import { recentChecksByService } from "../server/lib/checks.js";
 import { serviceShape } from "../server/lib/contracts.js";
+
+const checkPoint = z.object({
+  ok: z.boolean(),
+  latencyMs: z.number().nullable(),
+  checkedAt: z.string(),
+});
 
 export default defineAction({
   description:
-    "List the monitored services the current user can see, with their latest check result and any open incident id.",
+    "List the monitored services the current user can see, with their latest check result, the last 24 checks (newest first), and any open incident id.",
   schema: z.object({}),
-  outputSchema: z.object({ services: z.array(serviceShape) }),
+  outputSchema: z.object({
+    services: z.array(serviceShape.extend({ recentChecks: z.array(checkPoint) })),
+  }),
   http: { method: "GET" },
   readOnly: true,
   link: () => ({
@@ -42,17 +51,16 @@ export default defineAction({
       .limit(200);
     if (rows.length === 0) return { services: [] };
 
-    const open = await db
-      .select({ id: incidents.id, serviceId: incidents.serviceId })
-      .from(incidents)
-      .where(
-        and(
-          inArray(incidents.serviceId, rows.map((r) => r.id)),
-          inArray(incidents.status, [...OPEN_STATUSES]),
-        ),
-      )
-      .orderBy(desc(incidents.startedAt))
-      .limit(500);
+    const ids = rows.map((r) => r.id);
+    const [open, checks] = await Promise.all([
+      db
+        .select({ id: incidents.id, serviceId: incidents.serviceId })
+        .from(incidents)
+        .where(and(inArray(incidents.serviceId, ids), inArray(incidents.status, [...OPEN_STATUSES])))
+        .orderBy(desc(incidents.startedAt))
+        .limit(500),
+      recentChecksByService(ids),
+    ]);
     const openByService = new Map<string, string>();
     for (const row of open) {
       if (row.serviceId && !openByService.has(row.serviceId)) {
@@ -63,6 +71,7 @@ export default defineAction({
       services: rows.map((row) => ({
         ...row,
         openIncidentId: openByService.get(row.id) ?? null,
+        recentChecks: checks.get(row.id) ?? [],
       })),
     };
   },

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { OPEN_STATUSES } from "../shared/incident.js";
 import { getDb, schema } from "../server/db/index.js";
+import { recentChecksByService } from "../server/lib/checks.js";
 import { incidentStatusSchema, severitySchema } from "../server/lib/contracts.js";
 
 const publicIncident = z.object({
@@ -29,7 +30,13 @@ export default defineAction({
     generatedAt: z.string(),
     allClear: z.boolean(),
     services: z.array(
-      z.object({ id: z.string(), name: z.string(), ok: z.boolean().nullable(), lastCheckAt: z.string().nullable() }),
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        ok: z.boolean().nullable(),
+        lastCheckAt: z.string().nullable(),
+        checks: z.array(z.object({ ok: z.boolean(), latencyMs: z.number().nullable(), checkedAt: z.string() })),
+      }),
     ),
     open: z.array(publicIncident),
     recent: z.array(publicIncident),
@@ -60,6 +67,7 @@ export default defineAction({
       .limit(100);
     const serviceIds = publicServices.map((s) => s.id);
     const nameById = new Map(publicServices.map((s) => [s.id, s.name]));
+    const checksByService = await recentChecksByService(serviceIds, 40);
 
     const incidentTenant = page.orgId
       ? eq(incidents.orgId, page.orgId)
@@ -127,7 +135,10 @@ export default defineAction({
       slug: page.slug,
       generatedAt: new Date().toISOString(),
       allClear: open.length === 0 && publicServices.every((s) => s.ok !== false),
-      services: publicServices,
+      services: publicServices.map((service) => ({
+        ...service,
+        checks: checksByService.get(service.id) ?? [],
+      })),
       open,
       recent: shaped.filter((i) => i.status === "resolved"),
     };
