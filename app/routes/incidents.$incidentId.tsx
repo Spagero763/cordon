@@ -203,7 +203,7 @@ export default function IncidentRoom() {
             <EditableTitle
               value={incident.title}
               onSave={(title) => update.mutate({ id: incident.id, title })}
-              className="text-balance text-xl font-semibold leading-7 tracking-tight sm:text-2xl"
+              className="text-balance text-xl font-semibold leading-7 tracking-tight [overflow-wrap:anywhere] sm:text-2xl"
             />
             <p className="mt-1 text-sm text-muted-foreground">
               {incident.serviceName ? `${incident.serviceName} · ` : ""}
@@ -236,7 +236,7 @@ export default function IncidentRoom() {
                 Write the postmortem
               </AgentButton>
             )}
-            <div className="ms-auto flex items-center gap-1 rounded-md border border-border p-0.5" role="tablist">
+            <div className="ms-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-md border border-border p-0.5" role="tablist">
               {TABS.map((t) => (
                 <button
                   key={t.id}
@@ -245,7 +245,7 @@ export default function IncidentRoom() {
                   aria-selected={tab === t.id}
                   onClick={() => setSearchParams(t.id === "timeline" ? {} : { tab: t.id }, { replace: true })}
                   className={cn(
-                    "relative h-7 rounded px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+                    "relative h-7 shrink-0 whitespace-nowrap rounded px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
                     tab === t.id && "text-foreground",
                   )}
                 >
