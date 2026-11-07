@@ -16,7 +16,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRef, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import { clock, dayLabel, initials, useNow, relative } from "@/lib/format";
+import { clock, dayLabel, initials, personName, useNow, relative } from "@/lib/format";
 
 import { Mono } from "./marks";
 import { ease, spring } from "./motion";
@@ -83,11 +83,13 @@ function Row({
   now,
   entrance,
   delay,
+  people,
 }: {
   entry: TimelineEntry;
   now: number;
   entrance: Entrance;
   delay: number;
+  people: Record<string, string> | undefined;
 }) {
   const ref = useRef<HTMLLIElement>(null);
   const picked = useAgentSelectable({
@@ -99,7 +101,7 @@ function Row({
     getElement: () => ref.current,
   });
   const isUpdate = entry.kind === "update";
-  const who = entry.actorKind === "person" ? entry.actorEmail : ACTOR_LABEL[entry.actorKind];
+  const who = entry.actorKind === "person" ? personName(entry.actorEmail, people) : ACTOR_LABEL[entry.actorKind];
   const arrived = entrance === "arrived";
   // What you typed yourself is already where you expect it; only other
   // people's and the agent's entries announce themselves.
@@ -164,7 +166,7 @@ function Row({
           <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             {entry.actorKind === "person" ? (
               <span className="inline-flex size-4 items-center justify-center rounded-full bg-muted font-mono text-[9px] text-foreground/80">
-                {initials(entry.actorEmail)}
+                {initials(who)}
               </span>
             ) : null}
             <span className={cn(entry.actorKind !== "person" && "font-mono uppercase tracking-[0.08em]")}>{who}</span>
@@ -216,11 +218,13 @@ function AgentTail({ phrase }: { phrase: string }) {
 export function Timeline({
   entries,
   me,
+  people,
   agentPhrase,
   className,
 }: {
   entries: TimelineEntry[];
   me?: string | null;
+  people?: Record<string, string>;
   agentPhrase?: string | null;
   className?: string;
 }) {
@@ -240,6 +244,7 @@ export function Timeline({
               now={now}
               entrance={loaded ? "loaded" : mine ? "mine" : "arrived"}
               delay={Math.min(index, 10) * 0.03}
+              people={people}
             />
           );
         })}

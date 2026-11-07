@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { activityTouches, agentPhrase, useAgentActivity } from "@/hooks/use-agent-activity";
-import { utcClock } from "@/lib/format";
+import { personName, utcClock } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
@@ -209,7 +209,7 @@ export default function IncidentRoom() {
               {incident.serviceName ? `${incident.serviceName} · ` : ""}
               {incident.commanderEmail ? (
                 <>
-                  <span className="text-foreground">{incident.commanderEmail}</span> is commander
+                  <span className="text-foreground">{personName(incident.commanderEmail, incident.people)}</span> is commander
                 </>
               ) : userEmail ? (
                 <button type="button" className="underline-offset-2 hover:text-foreground hover:underline" onClick={() => update.mutate({ id: incident.id, commanderEmail: userEmail })}>
@@ -277,6 +277,7 @@ export default function IncidentRoom() {
                 <Timeline
                   entries={incident.timeline}
                   me={userEmail}
+                  people={incident.people}
                   agentPhrase={agentHere ? agentPhrase(agentHere) : null}
                   className="mb-4"
                 />

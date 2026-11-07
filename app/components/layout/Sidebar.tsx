@@ -278,11 +278,19 @@ function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
     );
   }
 
+  // The watcher opens a thread every five minutes. Its work shows on the
+  // timeline, so the chat list keeps only conversations a person started.
+  const sections = history.sections.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !/^(Job|Automation): /.test(item.titleText ?? "")),
+  }));
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-2 pb-3">{newChatButton}</div>
       <OwnershipChatHistoryRail
         {...history}
+        sections={sections}
         onNewChat={() => void handleNewChat()}
         showNewChat={false}
         activeId={displayedActiveThreadId}

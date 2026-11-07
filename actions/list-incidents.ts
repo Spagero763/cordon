@@ -6,8 +6,9 @@ import { z } from "zod";
 
 import { OPEN_STATUSES } from "../shared/incident.js";
 import { getDb, schema } from "../server/db/index.js";
-import { incidentShape } from "../server/lib/contracts.js";
+import { incidentShape, peopleShape } from "../server/lib/contracts.js";
 import { incidentSummary } from "../server/lib/incident-reads.js";
+import { namesFor } from "../server/lib/people.js";
 
 export default defineAction({
   description:
@@ -16,7 +17,7 @@ export default defineAction({
     filter: z.enum(["open", "resolved", "all"]).default("open").describe('"open", "resolved", or "all"; defaults to "open"'),
     limit: z.coerce.number().int().min(1).max(200).default(50).describe("Max rows; defaults to 50"),
   }),
-  outputSchema: z.object({ incidents: z.array(incidentShape) }),
+  outputSchema: z.object({ incidents: z.array(incidentShape), people: peopleShape }),
   http: { method: "GET" },
   readOnly: true,
   link: () => ({
@@ -41,6 +42,7 @@ export default defineAction({
       .limit(limit);
     return {
       incidents: rows.map(({ incident, serviceName }) => incidentSummary(incident, serviceName)),
+      people: await namesFor(rows.map(({ incident }) => incident.commanderEmail)),
     };
   },
 });

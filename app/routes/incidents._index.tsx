@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { agentPhrase, useAgentActivity } from "@/hooks/use-agent-activity";
-import { duration, relative, useNow } from "@/lib/format";
+import { duration, personName, relative, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { AgentButton } from "@/components/cordon/AgentButton";
@@ -171,7 +171,7 @@ export default function IncidentsBoard() {
                               </h2>
                               <p className="text-xs text-muted-foreground">
                                 {incident.serviceName ? `${incident.serviceName} · ` : ""}
-                                {incident.commanderEmail ? `${incident.commanderEmail} has it` : "No commander yet"}
+                                {incident.commanderEmail ? `${personName(incident.commanderEmail, open.data?.people)} has it` : "No commander yet"}
                               </p>
                             </div>
                             <div className="shrink-0 text-end">

@@ -18,7 +18,8 @@ same timeline.
   and merged pull requests for the service, and logs what it finds beside your
   own notes.
 - **Tell customers.** Drafts are written in the room. Publishing asks a person
-  to approve the exact text, then posts it to the public status page.
+  to approve the exact text, then posts it to the public status page. Until
+  that first approval, customers see service health but not the incident.
 - **Learn.** Summary, impact, root cause, lessons, and action items on every
   incident, written from the timeline rather than from memory.
 

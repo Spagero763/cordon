@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { getDb, schema } from "../server/db/index.js";
 import { incidentDetailShape } from "../server/lib/contracts.js";
+import { namesFor } from "../server/lib/people.js";
 import {
   incidentSummary,
   loadActionItems,
@@ -44,6 +45,7 @@ export default defineAction({
       loadUpdates(id),
       loadActionItems(id),
     ]);
-    return { ...incidentSummary(row, serviceName), timeline, updates, actionItems };
+    const people = await namesFor([row.commanderEmail, ...timeline.map((e) => e.actorEmail)]);
+    return { ...incidentSummary(row, serviceName), timeline, updates, actionItems, people };
   },
 });

@@ -108,9 +108,6 @@ export default function PublicStatusPage() {
                           <p className="text-sm leading-6">{update.body}</p>
                         </li>
                       ))}
-                      {incident.updates.length === 0 ? (
-                        <li className="text-sm text-muted-foreground">We are looking into it. An update will follow.</li>
-                      ) : null}
                     </ol>
                   </article>
                 ))}

@@ -53,9 +53,15 @@ export function dayLabel(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(iso));
 }
 
-export function initials(email: string | null | undefined): string {
-  if (!email) return "";
-  const name = email.split("@")[0] ?? email;
-  const parts = name.split(/[._-]+/).filter(Boolean);
+export function initials(who: string | null | undefined): string {
+  if (!who) return "";
+  const name = who.includes("@") ? (who.split("@")[0] ?? who) : who;
+  const parts = name.split(/[\s._-]+/).filter(Boolean);
   return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || name.slice(0, 2).toUpperCase();
+}
+
+/** A person's display name when one is known, else their email. */
+export function personName(email: string | null | undefined, people: Record<string, string> | undefined): string {
+  if (!email) return "";
+  return people?.[email.toLowerCase()] ?? email;
 }

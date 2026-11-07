@@ -86,8 +86,11 @@ export const incidentShape = z.object({
   updatedAt: z.string(),
 });
 
+export const peopleShape = z.record(z.string(), z.string()).describe("Display name by email for everyone referenced");
+
 export const incidentDetailShape = incidentShape.extend({
   timeline: z.array(entryShape),
   updates: z.array(updateShape),
   actionItems: z.array(actionItemShape),
+  people: peopleShape,
 });

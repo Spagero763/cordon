@@ -28,6 +28,13 @@ Resolved updates replace sentence three with the all clear and the window:
 "This was resolved at 14:12 UTC. Card payments were affected between 13:41 and
 14:12 UTC."
 
+## When to draft the first one
+
+The public page shows an incident only after its first update is published, so
+until then customers see service health and nothing else. Offer a first draft
+as soon as impact is known for a public service; the person decides whether it
+goes out.
+
 ## Rules
 
 - Match `state` to the incident status: `investigating`, `identified`,

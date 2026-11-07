@@ -22,7 +22,7 @@ const publicIncident = z.object({
 
 export default defineAction({
   description:
-    "Read the public status page by slug: title, public services with current health, open incidents with their published updates, and incidents resolved in the last 7 days. No sign-in required; nothing internal is included.",
+    "Read the public status page by slug: title, public services with current health, and incidents that have at least one published update (open ones, plus those resolved in the last 7 days). An incident nobody has published about is not shown. No sign-in required; nothing internal is included.",
   schema: z.object({ slug: z.string().min(1).max(48).describe("Status page slug from the URL /status/<slug>") }),
   outputSchema: z.object({
     title: z.string(),
@@ -119,7 +119,8 @@ export default defineAction({
       list.push({ id: u.id, body: u.body, state: u.state, publishedAt: u.publishedAt });
       updatesByIncident.set(u.incidentId, list);
     }
-    const shaped = rows.map((row) => ({
+    // Customers see an incident only once someone has approved a word about it.
+    const shaped = rows.filter((row) => updatesByIncident.has(row.id)).map((row) => ({
       id: row.id,
       title: row.title,
       severity: row.severity,
