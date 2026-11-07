@@ -18,10 +18,16 @@ const INITIAL_TOOL_NAMES = [
   "draft-update",
   "publish-update",
   "list-services",
+  "get-service",
+  "create-service",
+  "update-service",
   "run-checks",
   "list-recent-changes",
   "ingest-alert",
   "add-action-item",
+  "update-action-item",
+  "get-status-page-for-workspace",
+  "update-status-page",
   "ask-question",
 ];
 

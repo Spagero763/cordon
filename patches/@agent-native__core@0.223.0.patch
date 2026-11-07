@@ -1,0 +1,27 @@
+diff --git a/dist/agent/engine/anthropic-engine.js b/dist/agent/engine/anthropic-engine.js
+index 94f802e4518eb49907698d5e49eee567da9273ff..3b1e1a30d09a76134af4094e0a90bfb2f33a6c19 100644
+--- a/dist/agent/engine/anthropic-engine.js	
++++ b/dist/agent/engine/anthropic-engine.js	
+@@ -77,6 +77,14 @@ class AnthropicEngine {
+                 }
+             }
+         }
++        // Claude 5.1+ binds each thinking block to the system prompt, tools and
++        // messages before it. Tools loaded mid-run change that prefix, so ask the
++        // API to drop stale blocks instead of rejecting the request.
++        const requestHeaders = {};
++        if (extra.thinking?.type === "adaptive") {
++            extra.thinking.block_binding = { prefix_mismatch_behavior: "drop_block" };
++            requestHeaders["anthropic-beta"] = "thinking-binding-controls-2026-08-01";
++        }
+         const samplingAllowed = allowsSamplingParams({
+             model: opts.model,
+             thinkingEnabled: Boolean(extra.thinking),
+@@ -137,6 +145,7 @@ class AnthropicEngine {
+         const firstEventAbort = createFirstEventAbortController(opts.abortSignal);
+         const dispatch = await startModelDispatch(opts, () => client.messages.stream(requestParams, {
+             signal: firstEventAbort.signal,
++            headers: requestHeaders,
+         })).catch((error) => {
+             firstEventAbort.cleanup();
+             throw error;
