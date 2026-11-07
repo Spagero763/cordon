@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getDb, schema } from "../server/db/index.js";
 import { checkShape } from "../server/lib/contracts.js";
 import { probe, recordCheck } from "../server/lib/incidents.js";
+import { ensureWatchJob } from "../server/lib/watch-job.js";
 
 export default defineAction({
   description:
@@ -29,7 +30,12 @@ export default defineAction({
   }),
   parallelSafe: true,
   mcpAnnotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-  run: async ({ serviceId, force }) => {
+  run: async ({ serviceId, force }, ctx) => {
+    try {
+      await ensureWatchJob(ctx);
+    } catch (error) {
+      console.warn("[cordon] watch job was not created:", error instanceof Error ? error.message : error);
+    }
     const db = getDb();
     const { services, serviceShares } = schema;
     const where = serviceId

@@ -6,6 +6,7 @@ import { getDb, schema } from "../server/db/index.js";
 import { orgOf, requireUser } from "../server/lib/access.js";
 import { serviceShape } from "../server/lib/contracts.js";
 import { newId, newToken, nowIso } from "../server/lib/ids.js";
+import { ensureWatchJob } from "../server/lib/watch-job.js";
 
 const REPO = /^[\w.-]+\/[\w.-]+$/;
 
@@ -60,6 +61,11 @@ export default defineAction({
       visibility: orgId ? ("org" as const) : ("private" as const),
     };
     await getDb().insert(schema.services).values(row);
+    try {
+      await ensureWatchJob(ctx);
+    } catch (error) {
+      console.warn("[cordon] watch job was not created:", error instanceof Error ? error.message : error);
+    }
     const { webhookToken: _token, ownerEmail: _o, orgId: _g, visibility: _v, createdAt: _c, ...out } = row;
     return { ...out, openIncidentId: null };
   },

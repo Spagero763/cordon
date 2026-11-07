@@ -1,25 +1,10 @@
 import { defineNitroPlugin } from "@agent-native/core";
 import {
+  resourceDeleteByPath,
   resourceGetByPath,
   resourcePut,
   SHARED_OWNER,
 } from "@agent-native/core/resources/store";
-
-const MONITOR_JOB = `---
-schedule: "*/5 * * * *"
-enabled: true
-runAs: creator
----
-
-# Watch the services
-
-Call run-checks. For every id in declaredIncidentIds, call get-incident,
-then follow the incident-command skill's first two minutes: write what is
-broken, when it started, and what changed (list-recent-changes on the
-service's repository) as notes on that incident. Do not change severity or
-status. If declaredIncidentIds is empty and no check recovered, finish without
-writing anything.
-`;
 
 const INVESTIGATOR_AGENT = `---
 name: Investigator
@@ -53,7 +38,6 @@ do not change status or severity. You find evidence and write it down.
 `;
 
 const DEFAULTS: Array<{ path: string; content: string }> = [
-  { path: "jobs/watch-services.md", content: MONITOR_JOB },
   { path: "agents/investigator.md", content: INVESTIGATOR_AGENT },
 ];
 
@@ -63,6 +47,9 @@ async function seed() {
     if (existing) continue;
     await resourcePut(SHARED_OWNER, path, content, "text/markdown");
   }
+  // The watch job used to be seeded here, where it ran with no organization
+  // and saw no services. Each workspace now creates its own on the first service.
+  await resourceDeleteByPath(SHARED_OWNER, "jobs/watch-services.md");
 }
 
 export default defineNitroPlugin(() => {
