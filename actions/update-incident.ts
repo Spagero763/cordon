@@ -11,6 +11,7 @@ import { INCIDENT_CARD_RENDERER, incidentCard, incidentShape, incidentStatusSche
 import { incidentSummary, serviceNameOf } from "../server/lib/incident-reads.js";
 import { insertEntry } from "../server/lib/incidents.js";
 import { nowIso } from "../server/lib/ids.js";
+import { namesFor } from "../server/lib/people.js";
 
 export default defineAction({
   description:
@@ -79,7 +80,11 @@ export default defineAction({
         changes.commanderEmail = patch.commanderEmail;
         entries.push({
           kind: "commander",
-          body: patch.commanderEmail ? `${patch.commanderEmail} is commander${suffix}` : `Commander cleared${suffix}`,
+          body: !patch.commanderEmail
+            ? `Commander cleared${suffix}`
+            : patch.commanderEmail.toLowerCase() === actor.email?.toLowerCase()
+              ? `Took command${suffix}`
+              : `Handed command to ${(await namesFor([patch.commanderEmail]))[patch.commanderEmail.toLowerCase()] ?? patch.commanderEmail}${suffix}`,
           meta: { commanderEmail: patch.commanderEmail },
         });
       }

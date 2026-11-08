@@ -190,6 +190,7 @@ function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
     observedThreadStarts,
   });
   const history = useOwnershipChatHistory({
+    pageSize: 30,
     getThreadUrl: (threadId) => appPath(chatThreadPath(threadId)),
     activeId:
       threadIdFromPath(location.pathname) ??
@@ -282,7 +283,7 @@ function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
   // the chat list keeps only conversations a person started.
   const sections = history.sections.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !/^(Job|Automation): /.test(item.titleText ?? "")),
+    items: section.items.filter((item) => !/^(Job|Automation|Trigger): /.test(item.titleText ?? "")),
   }));
 
   return (
