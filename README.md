@@ -10,9 +10,14 @@ same timeline.
 
 ## What it does
 
-- **Watch.** Add a URL. Cordon checks it on an interval and opens an incident
-  after two failures in a row. Every service also gets a webhook that accepts
-  JSON from Sentry, Grafana, Better Stack, or `curl`.
+- **Watch.** Add a URL. A code job checks it every minute, no model involved,
+  and two failures in a row open an incident dated from the first one. The
+  on-call address is emailed when a mail provider is connected. Every service
+  also gets a webhook that accepts JSON from Sentry, Grafana, Better Stack, or
+  `curl`.
+- **First two minutes.** An incident that opens with nobody in the room wakes
+  the agent, which writes what is broken, when it started, and what changed on
+  the timeline, and says what it could not confirm.
 - **Run the room.** Severity, status, commander, notes, and hypotheses live on
   one timeline. The agent reads what you are looking at, pulls recent commits
   and merged pull requests for the service, and logs what it finds beside your
@@ -47,6 +52,9 @@ Required environment:
 | --- | --- |
 | `DATABASE_URL` | A persistent PostgreSQL database |
 | `BETTER_AUTH_SECRET` | Signs sessions; keep it stable across deploys |
+| `A2A_SECRET` | Lets the host's scheduler call the app once a minute |
+| `ANTHROPIC_API_KEY` or another provider key | The model behind the agent; can also be connected in Settings |
+| `RESEND_API_KEY` or `SENDGRID_API_KEY` | Optional; enables sign-up verification and on-call email |
 
 Run `pnpm migrate:production` against the database before the first visit
 and after every upgrade.
