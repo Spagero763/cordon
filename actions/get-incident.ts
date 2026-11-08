@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb, schema } from "../server/db/index.js";
-import { incidentDetailShape } from "../server/lib/contracts.js";
+import { INCIDENT_CARD_RENDERER, incidentCard, incidentDetailShape } from "../server/lib/contracts.js";
 import { namesFor } from "../server/lib/people.js";
 import {
   incidentSummary,
@@ -20,6 +20,7 @@ export default defineAction({
     "Read one incident in full: its fields, the whole timeline in order, customer updates (drafts and published), and action items. Call this before acting on an incident.",
   schema: z.object({ id: z.string().describe("Incident id") }),
   outputSchema: incidentDetailShape,
+  chatUI: { renderer: INCIDENT_CARD_RENDERER, projectResult: (_args, result) => incidentCard(result) },
   http: { method: "GET" },
   readOnly: true,
   publicAgent: { expose: true, readOnly: true, requiresAuth: true },

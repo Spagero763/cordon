@@ -2,6 +2,7 @@ import { useAgentSelectable } from "@agent-native/toolkit/app/agent-select";
 import {
   IconAlertTriangle,
   IconArrowBackUp,
+  IconBell,
   IconBolt,
   IconCheck,
   IconChecklist,
@@ -45,6 +46,7 @@ const ICONS: Record<string, ReactNode> = {
   "action-item": <IconChecklist className="size-3.5" />,
   resolved: <IconCheck className="size-3.5" />,
   reopened: <IconArrowBackUp className="size-3.5" />,
+  paged: <IconBell className="size-3.5" />,
 };
 
 const ACTOR_LABEL: Record<TimelineEntry["actorKind"], string> = {

@@ -26,8 +26,8 @@ export default defineAction({
       .int()
       .min(1)
       .max(60)
-      .default(5)
-      .describe("Minutes between checks; defaults to 5"),
+      .default(1)
+      .describe("Minutes between checks; defaults to 1"),
     isPublic: z.boolean().default(true).describe("Show on the public status page; defaults to true"),
     oncallEmail: z.string().email().optional().describe("Who is paged for this service; omit if nobody"),
   }),

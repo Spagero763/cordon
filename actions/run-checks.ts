@@ -1,12 +1,11 @@
 import { defineAction, fail } from "@agent-native/core/action";
-import { ssrfSafeFetch } from "@agent-native/core/extensions/url-safety";
 import { accessFilter } from "@agent-native/core/sharing";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb, schema } from "../server/db/index.js";
 import { checkShape } from "../server/lib/contracts.js";
-import { probe, recordCheck } from "../server/lib/incidents.js";
+import { checkServices } from "../server/lib/checks.js";
 import { ensureWatchJob } from "../server/lib/watch-job.js";
 
 export default defineAction({
@@ -46,31 +45,6 @@ export default defineAction({
       fail("Service not found.", { errorCode: "not_found", statusCode: 404 });
     }
 
-    const now = Date.now();
-    const due = rows.filter((service) => {
-      if (force || serviceId || !service.lastCheckAt) return true;
-      const elapsed = now - Date.parse(service.lastCheckAt);
-      return elapsed >= service.checkIntervalMinutes * 60_000 - 5_000;
-    });
-
-    const results = await Promise.all(
-      due.map(async (service) => {
-        const outcome = await probe(service.url, (url, init) => ssrfSafeFetch(url, init));
-        const recorded = await recordCheck(service, outcome);
-        return {
-          ...recorded.check,
-          serviceName: service.name,
-          incidentId: recorded.incidentId,
-          declared: recorded.declared,
-          recovered: recorded.recovered,
-        };
-      }),
-    );
-
-    return {
-      checks: results.map(({ orgId: _org, ...check }) => check),
-      skipped: rows.length - due.length,
-      declaredIncidentIds: results.filter((r) => r.declared && r.incidentId).map((r) => r.incidentId as string),
-    };
+    return checkServices(rows, { force: force || Boolean(serviceId) });
   },
 });

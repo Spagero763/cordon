@@ -21,6 +21,7 @@ import {
 } from "react-router";
 import type { LinksFunction } from "react-router";
 
+import "@/chat-renderers";
 import { Layout as AppLayout } from "@/components/layout/Layout";
 import { AppToolkitProvider } from "@/components/ui/toolkit-provider";
 import { useNavigationState } from "@/hooks/use-navigation-state";

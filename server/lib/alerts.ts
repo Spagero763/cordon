@@ -11,6 +11,7 @@ import {
   type Actor,
   type ServiceRow,
 } from "./incidents.js";
+import { afterIncidentOpened } from "./opened.js";
 
 const GROUP_WINDOW_MS = 30 * 60_000;
 
@@ -30,7 +31,7 @@ export async function ingestAlert(input: {
   const receivedAt = nowIso();
   const windowStart = new Date(Date.now() - GROUP_WINDOW_MS).toISOString();
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [recent] = await tx
       .select({ incidentId: schema.alerts.incidentId })
       .from(schema.alerts)
@@ -99,4 +100,6 @@ export async function ingestAlert(input: {
 
     return { alertId, incidentId, declared, grouped };
   });
+  if (result.declared && result.incidentId) await afterIncidentOpened(result.incidentId);
+  return result;
 }

@@ -11,6 +11,7 @@ import {
 } from "../../shared/incident.js";
 import { getDb, schema } from "../db/index.js";
 import { newId, nowIso } from "./ids.js";
+import { afterIncidentOpened } from "./opened.js";
 
 export interface Actor {
   email: string | null;
@@ -189,7 +190,7 @@ export async function recordCheck(
   };
   const monitor: Actor = { email: null, kind: "monitor" };
 
-  return db.transaction(async (tx) => {
+  const recorded = await db.transaction(async (tx) => {
     await tx.insert(schema.checks).values(check);
     const failures = outcome.ok ? 0 : service.consecutiveFailures + 1;
     await tx
@@ -242,6 +243,8 @@ export async function recordCheck(
 
     return { check, incidentId: open?.id ?? null, declared: false, recovered: false };
   });
+  if (recorded.declared && recorded.incidentId) await afterIncidentOpened(recorded.incidentId);
+  return recorded;
 }
 
 export function parseMeta(meta: string | null): Record<string, unknown> | null {

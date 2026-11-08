@@ -28,6 +28,7 @@ export const ENTRY_KINDS = [
   "action-item",
   "resolved",
   "reopened",
+  "paged",
 ] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 

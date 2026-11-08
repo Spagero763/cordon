@@ -6,8 +6,9 @@ import { z } from "zod";
 
 import { getDb, schema } from "../server/db/index.js";
 import { actorFromCtx, orgOf, requireUser } from "../server/lib/access.js";
-import { incidentShape, severitySchema } from "../server/lib/contracts.js";
+import { INCIDENT_CARD_RENDERER, incidentCard, incidentShape, severitySchema } from "../server/lib/contracts.js";
 import { declareIncident } from "../server/lib/incidents.js";
+import { afterIncidentOpened } from "../server/lib/opened.js";
 
 export default defineAction({
   description:
@@ -24,6 +25,7 @@ export default defineAction({
       .describe("When impact began, ISO 8601 with offset; defaults to now"),
   }),
   outputSchema: incidentShape,
+  chatUI: { renderer: INCIDENT_CARD_RENDERER, projectResult: (_args, result) => incidentCard(result) },
   mcpAnnotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   link: ({ result }) => ({
     url: buildDeepLink({
@@ -58,6 +60,7 @@ export default defineAction({
       orgId,
       startedAt: args.startedAt ? new Date(args.startedAt).toISOString() : undefined,
     });
+    await afterIncidentOpened(incident.id);
     return {
       id: incident.id,
       title: incident.title,

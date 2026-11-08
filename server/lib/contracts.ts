@@ -94,3 +94,20 @@ export const incidentDetailShape = incidentShape.extend({
   actionItems: z.array(actionItemShape),
   people: peopleShape,
 });
+
+export const INCIDENT_CARD_RENDERER = "cordon.incident";
+
+/** The slice of an incident the chat card needs. */
+export function incidentCard(result: unknown) {
+  const r = result as z.infer<typeof incidentShape> & { people?: Record<string, string> };
+  return {
+    id: r.id,
+    title: r.title,
+    severity: r.severity,
+    status: r.status,
+    serviceName: r.serviceName,
+    commander: r.commanderEmail ? (r.people?.[r.commanderEmail.toLowerCase()] ?? r.commanderEmail) : null,
+    startedAt: r.startedAt,
+    resolvedAt: r.resolvedAt,
+  };
+}

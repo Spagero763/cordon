@@ -7,7 +7,7 @@ import { z } from "zod";
 import { SEVERITY_LABEL, STATUS_LABEL } from "../shared/incident.js";
 import { getDb, schema } from "../server/db/index.js";
 import { actorFromCtx } from "../server/lib/access.js";
-import { incidentShape, incidentStatusSchema, severitySchema } from "../server/lib/contracts.js";
+import { INCIDENT_CARD_RENDERER, incidentCard, incidentShape, incidentStatusSchema, severitySchema } from "../server/lib/contracts.js";
 import { incidentSummary, serviceNameOf } from "../server/lib/incident-reads.js";
 import { insertEntry } from "../server/lib/incidents.js";
 import { nowIso } from "../server/lib/ids.js";
@@ -28,6 +28,7 @@ export default defineAction({
     reason: z.string().max(240).optional().describe("Why, in one line; appended to the timeline entry"),
   }),
   outputSchema: incidentShape,
+  chatUI: { renderer: INCIDENT_CARD_RENDERER, projectResult: (_args, result) => incidentCard(result) },
   mcpAnnotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   link: ({ args }) => ({
     url: buildDeepLink({

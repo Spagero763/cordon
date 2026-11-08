@@ -278,8 +278,8 @@ function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
     );
   }
 
-  // The watcher opens a thread every five minutes. Its work shows on the
-  // timeline, so the chat list keeps only conversations a person started.
+  // Automations open a thread per run. Their work shows on the timeline, so
+  // the chat list keeps only conversations a person started.
   const sections = history.sections.map((section) => ({
     ...section,
     items: section.items.filter((item) => !/^(Job|Automation): /.test(item.titleText ?? "")),

@@ -49,12 +49,12 @@ function AddServiceDialog() {
           className="space-y-4"
           onSubmit={(event) => {
             event.preventDefault();
-            create.mutate({ name: name.trim(), url: url.trim(), repo: repo.trim() || undefined, checkIntervalMinutes: 5, isPublic: true });
+            create.mutate({ name: name.trim(), url: url.trim(), repo: repo.trim() || undefined, checkIntervalMinutes: 1, isPublic: true });
           }}
         >
           <DialogHeader>
             <DialogTitle>Watch a service</DialogTitle>
-            <DialogDescription>Cordon requests the URL every five minutes and opens an incident after two failures in a row.</DialogDescription>
+            <DialogDescription>Cordon requests the URL on the interval you set and opens an incident after two failures in a row.</DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="svc-name">Name</Label>
